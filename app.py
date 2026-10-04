@@ -7,6 +7,7 @@ st.set_page_config(
     page_title="Predictor AI - Match Center Pro", page_icon="⚽", layout="wide"
 )
 
+
 # --- SISTEMA DI PASSWORD ---
 def check_password():
   """Restituisce True se l'utente ha inserito la password corretta."""
@@ -14,7 +15,7 @@ def check_password():
   def password_entered():
     if st.session_state["password"] == "nga":
       st.session_state["password_correct"] = True
-      del st.session_state["password"]  # Non memorizzare la password
+      del st.session_state["password"]
     else:
       st.session_state["password_correct"] = False
 
@@ -165,8 +166,7 @@ API_KEY = "d7f0800ed81a46509b1d980232a61fdb"
 
 st.title("⚽ Football Match Center & Pronostici Pro")
 st.markdown(
-    "Modello avanzato con **correzione di status (Big, Medie, Neopromosse)"
-    " e simulazione Monte Carlo**."
+    "Modello avanzato con **4 Categorie (Big, Media, Bassa, Neopromosse)**."
 )
 
 competizioni = {
@@ -255,44 +255,9 @@ def scarica_dati_completi(comp_code):
         team_name = row["team"]["name"]
         played = row["playedGames"] if row["playedGames"] > 0 else 1
 
-        # --- ASSEGNAZIONE STATUS STORICO/STRUTTURALE ---
-        # Classificazione in base al blasone/storico o posizione consolidata
-        # Le neopromosse o squadre di fascia bassa tendono ad avere una correzione di stabilità
-        # (Se una squadra di fascia bassa o neopromossa overperform, il fattore frena l'entusiasmo statistico)
-        lower_tier_keywords = [
-            "frosinone",
-            "monza",
-            "lecce",
-            "empoli",
-            "cagliari",
-            "verona",
-            "venezia",
-            "como",
-            "parma",
-            "genoa",
-            "salernitana",
-            "spezia",
-            "cremonese",
-            "benevento",
-            "crotone",
-            "alaves",
-            "las palmas",
-            "leganes",
-            "valladolid",
-            "espanyol",
-            "st. pauli",
-            "kiel",
-            "heidenheim",
-            "darmstadt",
-            "auxerre",
-            "angers",
-            "saint-étienne",
-            "le havre",
-        ]
-        is_lower_tier = any(
-            kw in team_name.lower() for kw in lower_tier_keywords
-        )
-
+        # --- SUDDIVISIONE IN 4 CATEGORIE ---
+        neopromosse_keywords = ["monza", "frosinone", "venezia"]
+        bassa_keywords = ["lecce", "cagliari", "empoli", "verona", "spezia"]
         big_keywords = [
             "inter",
             "milan",
@@ -313,19 +278,25 @@ def scarica_dati_completi(comp_code):
             "leverkusen",
             "psg",
         ]
-        is_big = any(bk in team_name.lower() for bk in big_keywords)
+
+        is_neopromossa = any(
+            kw in team_name.lower() for kw in neopromosse_keywords
+        )
+        is_bassa = any(bk in team_name.lower() for bk in bassa_keywords)
+        is_big = any(bg in team_name.lower() for bg in big_keywords)
 
         if is_big:
-          status_multiplier = (
-              1.15  # Le big mantengono o spingono di più nei momenti chiave
-          )
+          status_multiplier = 1.15
           status_label = "⭐ Big Team"
-        elif is_lower_tier:
-          status_multiplier = 0.88  # Fattore di correzione per neopromosse/piccole: i dati recenti eccellenti vengono smorzati per realismo strutturale
-          status_label = "🌱 Neopromossa / Fascia Bassa"
+        elif is_neopromossa:
+          status_multiplier = 0.88
+          status_label = "🌱 Neopromossa"
+        elif is_bassa:
+          status_multiplier = 0.93
+          status_label = "📉 Fascia Bassa"
         else:
           status_multiplier = 1.00
-          status_label = "⚖️ Squadra di Metta Classifica"
+          status_label = "⚖️ Media Classifica"
 
         coeff_posizione = 1.8 - (idx_pos / max(1, tot_squadre - 1)) * 1.3
 
@@ -364,7 +335,7 @@ def analizza_partita_pro(casa, ospite, history, standings):
           "gol_fatti_media": 1.3,
           "gol_subiti_media": 1.1,
           "status_multiplier": 1.0,
-          "status_label": "Metà Classifica",
+          "status_label": "Media Classifica",
       },
   )
   dati_ospite = standings.get(
@@ -375,7 +346,7 @@ def analizza_partita_pro(casa, ospite, history, standings):
           "gol_fatti_media": 1.3,
           "gol_subiti_media": 1.1,
           "status_multiplier": 1.0,
-          "status_label": "Metà Classifica",
+          "status_label": "Media Classifica",
       },
   )
 
@@ -422,7 +393,6 @@ def analizza_partita_pro(casa, ospite, history, standings):
       ultime_ospite, ospite, standings
   )
 
-  # Integrazione del moltiplicatore di status strutturale sulle performance recenti
   reale_gf_c = (
       (gf_c * 0.55) + (formaf_c * 0.45)
   ) * dati_casa["status_multiplier"]
@@ -461,37 +431,31 @@ def analizza_partita_pro(casa, ospite, history, standings):
   if tot_xg >= 3.0:
     stile_match = "🔥 **Partita Aperta e ad Alto Potenziale Offensivo**"
     desc_stile = (
-        f"Ci si attende una gara giocata a viso aperto. Il peso strutturale"
-        f" ({dati_casa['status_label']} vs {dati_ospite['status_label']}) è"
-        " stato calibrato dal modello per filtrare l'entusiasmo della forma"
-        " recente."
+        f"Gara aperta tra {dati_casa['status_label']} e"
+        f" {dati_ospite['status_label']}."
     )
   elif tot_xg <= 2.1:
     stile_match = (
         "🛡️ **Partita Tattica, Bloccata e a Prevalenza Difensiva**"
     )
     desc_stile = (
-        f"Il modello individua una sfida prudente, dove i valori di categoria"
-        f" ({dati_casa['status_label']} e {dati_ospite['status_label']}) frenano"
-        " i facili entusiasmi offensivi."
+        f"Confronto prudente guidato dai profili di {dati_casa['status_label']}"
+        f" e {dati_ospite['status_label']}."
     )
   else:
     stile_match = "⚖️ **Partita Equilibrata e di Gran Movimento a Metà Campo**"
     desc_stile = (
-        f"Confronto equilibrato tra {casa} ({dati_casa['status_label']}) e"
-        f" {ospite} ({dati_ospite['status_label']}), con duelli intensi e"
-        " inerzia incerta."
+        f"Sfida equilibrata tra {dati_casa['status_label']} e"
+        f" {dati_ospite['status_label']}."
     )
 
   if diff_xg > 0.8:
     dominatore = casa if xg_casa > xg_ospite else ospite
-    sfavorito = ospite if xg_casa > xg_ospite else casa
     desc_inerzia = (
-        f"Sulla carta, il blasone e l'impostazione premono per dare un"
-        f" vantaggio di controllo a **{dominatore}**."
+        f"Leggero vantaggio strutturale e di controllo per **{dominatore}**."
     )
   else:
-    desc_inerzia = "Equilibrio strutturale marcato tra le due contendenti."
+    desc_inerzia = "Grande equilibrio strutturale in campo."
 
   motivazione = (
       f"{stile_match}<br><br>{desc_stile}<br><br>{desc_inerzia}<br><br>"
@@ -530,9 +494,7 @@ if not matches_future:
       f"""
         <div class="alert-box">
             <h3 style="margin:0 0 10px 0; color:#f87171;">⚠️ Nessun match disponibile per {scelta_comp_label}</h3>
-            <p style="margin:0; font-size:14px; color:#cbd5e1;">
-                Seleziona <b>🇮🇹 Serie A</b> o <b>🇬🇧 Premier</b> per visualizzare i match attivi.
-            </p>
+            <p style="margin:0; font-size:14px; color:#cbd5e1;">Seleziona <b>🇮🇹 Serie A</b> o <b>🇬🇧 Premier</b>.</p>
         </div>
     """,
       unsafe_allow_html=True,
@@ -540,7 +502,7 @@ if not matches_future:
 else:
   if history_matches:
     st.markdown(
-        f'<span class="badge-live">🟢 Motore Pro + Status Corretto'
+        f'<span class="badge-live">🟢 Modello a 4 Categorie Attivo'
         f" ({scelta_comp_label})</span>",
         unsafe_allow_html=True,
     )
@@ -612,7 +574,7 @@ else:
 
     st.markdown("<br>", unsafe_allow_html=True)
     avvia_sim = st.button(
-        "🚀 AVVIA SIMULAZIONE CON CORREZIONE STATUS",
+        "🚀 AVVIA SIMULAZIONE A 4 CATEGORIE",
         type="primary",
         use_container_width=True,
     )
@@ -620,13 +582,13 @@ else:
   with col_destra:
     st.markdown(
         '<div class="match-header" style="text-align:center;">📊 Metriche'
-        " Ponderate & Corrette per Categoria</div>",
+        " Ponderate & Categorie</div>",
         unsafe_allow_html=True,
     )
 
     statistiche_mostrate = [
         (
-            "GOL FATTI (Corretti per Status)",
+            "GOL FATTI (Corretti per Categoria)",
             f"{analisi['media_gf_c']:.2f}",
             f"{analisi['media_gf_o']:.2f}",
         ),
@@ -661,7 +623,7 @@ else:
       )
 
   st.markdown(
-      '<div class="match-header">📋 Tattica & Analisi di Blasone</div>',
+      '<div class="match-header">📋 Analisi Tattica & Categorie</div>',
       unsafe_allow_html=True,
   )
   st.markdown(
@@ -677,10 +639,7 @@ else:
 
   if avvia_sim:
     N_SIM = 1_000_000
-    with st.spinner(
-        "Simulazione in corso di 1.000.000 di scenari con correzione"
-        " strutturale..."
-    ):
+    with st.spinner("Elaborazione Monte Carlo a 4 categorie in corso..."):
       gol_c = np.random.poisson(analisi["xg_f"], N_SIM)
       gol_t = np.random.poisson(analisi["xg_s"], N_SIM)
 
@@ -714,71 +673,51 @@ else:
 
     candidati_giocata = []
     if p_gol > 52:
-      candidati_giocata.append((
-          "Goal (Entrambe a segno)",
-          p_gol,
-          (
-              f"Entrambe le formazioni mantengono buoni presupposti offensivi"
-              f" ({p_gol:.1f}%)."
-          ),
-      ))
+      candidati_giocata.append(
+          ("Goal (Entrambe a segno)", p_gol, f"Buoni presupposti ({p_gol:.1f}%).")
+      )
     elif p_nogol > 52:
-      candidati_giocata.append((
-          "No Goal",
-          p_nogol,
-          (
-              f"Il divario strutturale o la prudenza tattica portano a un No"
-              f" Goal ({p_nogol:.1f}%)."
-          ),
-      ))
+      candidati_giocata.append(
+          ("No Goal", p_nogol, f"Tattica o divari marcati ({p_nogol:.1f}%).")
+      )
 
     if p_over25 > 50:
-      candidati_giocata.append((
-          "Over 2.5 Gol",
-          p_over25,
-          (
-              f"Volume di xG corretto superiore alla soglia critica"
-              f" ({p_over25:.1f}%)."
-          ),
-      ))
+      candidati_giocata.append(
+          ("Over 2.5 Gol", p_over25, f"Volume di xG alto ({p_over25:.1f}%).")
+      )
     else:
       p_under25 = 100 - p_over25
       if p_under25 > 50:
         candidati_giocata.append((
             "Under 2.5 Gol",
             p_under25,
-            (
-                f"Fattore di categoria e attenzione difensiva: Under 2.5 al"
-                f" {p_under25:.1f}%."
-            ),
+            f"Fattore prudenza: Under 2.5 al {p_under25:.1f}%.",
         ))
 
     if p_1 > 48:
-      candidati_giocata.append((
-          f"1 (Vittoria {casa})",
-          p_1,
-          f"Forza casalinga e blasone confermano il segno 1 ({p_1:.1f}%).",
-      ))
+      candidati_giocata.append(
+          (f"1 (Vittoria {casa})", p_1, f"Fattore campo/valori ({p_1:.1f}%).")
+      )
     elif p_2 > 45:
       candidati_giocata.append((
           f"2 (Vittoria {ospite})",
           p_2,
-          f"Superiorità strutturale della squadra ospite ({p_2:.1f}%).",
+          f"Forza della squadra ospite ({p_2:.1f}%).",
       ))
     elif p_1x > 70:
       candidati_giocata.append(
-          ("1X Doppia Chance", p_1x, f"Copertura affidabile ({p_1x:.1f}%).")
+          ("1X Doppia Chance", p_1x, f"Copertura solida ({p_1x:.1f}%).")
       )
     elif p_x2 > 70:
       candidati_giocata.append(
-          ("X2 Doppia Chance", p_x2, f"Copertura affidabile ({p_x2:.1f}%).")
+          ("X2 Doppia Chance", p_x2, f"Copertura solida ({p_x2:.1f}%).")
       )
 
     if not candidati_giocata:
       candidati_giocata.append((
           "Over 1.5 Gol",
           p_over15,
-          f"Mercato conservativo stimato al {p_over15:.1f}%.",
+          f"Mercato conservativo al {p_over15:.1f}%.",
       ))
 
     candidati_giocata.sort(key=lambda x: x[1], reverse=True)
@@ -793,10 +732,10 @@ else:
     st.markdown(
         f"""
         <div class="bet-card">
-            <h4 style="margin:0 0 8px 0; color:#34d399;">💡 Giocata Consigliata (Corretta per Status)</h4>
+            <h4 style="margin:0 0 8px 0; color:#34d399;">💡 Giocata Consigliata</h4>
             <p style="margin:0 0 5px 0; font-size:20px; font-weight:bold; color:#ffffff;">🎯 {miglior_nome} ({miglior_prob:.1f}%)</p>
             <p style="margin:0 0 8px 0; font-size:13px; color:#cbd5e1;"><b>Analisi:</b> {miglior_motivazione}</p>
-            <p style="margin:0; font-size:12px; color:#94a3b8;">Affidabilità del Modello: <span style="color:#34d399; font-weight:bold;">{affidabilita}</span></p>
+            <p style="margin:0; font-size:12px; color:#94a3b8;">Affidabilità: <span style="color:#34d399; font-weight:bold;">{affidabilita}</span></p>
         </div>
     """,
         unsafe_allow_html=True,
@@ -824,21 +763,13 @@ else:
   col_m1, col_m2 = st.columns(2)
   with col_m1:
     st.markdown(f"**{casa} - Capocannonieri:**")
-    marcatori_casa = scorers.get(casa, [])
-    if marcatori_casa:
-      for p_name, goals in sorted(
-          marcatori_casa, key=lambda x: x[1], reverse=True
-      )[:3]:
-        st.markdown(f"- 👤 **{p_name}** ({goals} gol)")
-    else:
-      st.markdown("_Nessun marcatore registrato di recente._")
+    for p_name, goals in sorted(
+        scorers.get(casa, []), key=lambda x: x[1], reverse=True
+    )[:3]:
+      st.markdown(f"- 👤 **{p_name}** ({goals} gol)")
   with col_m2:
     st.markdown(f"**{ospite} - Capocannonieri:**")
-    marcatori_ospite = scorers.get(ospite, [])
-    if marcatori_ospite:
-      for p_name, goals in sorted(
-          marcatori_ospite, key=lambda x: x[1], reverse=True
-      )[:3]:
-        st.markdown(f"- 👤 **{p_name}** ({goals} gol)")
-    else:
-      st.markdown("_Nessun marcatore registrato di recente._")
+    for p_name, goals in sorted(
+        scorers.get(ospite, []), key=lambda x: x[1], reverse=True
+    )[:3]:
+      st.markdown(f"- 👤 **{p_name}** ({goals} gol)")
