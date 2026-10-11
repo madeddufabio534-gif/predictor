@@ -157,35 +157,6 @@ st.markdown(
         margin-top: 30px;
         color: #fca5a5;
     }
-    .summary-card {
-        background: linear-gradient(135deg, rgba(6, 78, 59, 0.9) 0%, rgba(4, 47, 46, 0.85) 100%);
-        border: 1px solid rgba(52, 211, 153, 0.4);
-        padding: 25px;
-        border-radius: 18px;
-        text-align: center;
-        margin-top: 20px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-    }
-    .res-box {
-        background: rgba(4, 47, 46, 0.9);
-        border: 1px solid rgba(255, 255, 255, 0.15);
-        padding: 12px;
-        border-radius: 12px;
-        text-align: center;
-        font-weight: bold;
-        color: #ffffff;
-    }
-    .stat-row-clean {
-        background: rgba(6, 78, 59, 0.5);
-        padding: 10px 15px;
-        border-radius: 10px;
-        margin-bottom: 6px;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        font-weight: 600;
-    }
     </style>
 """,
     unsafe_allow_html=True,
@@ -802,57 +773,3 @@ else:
         scorers.get(ospite, []), key=lambda x: x[1], reverse=True
     )[:3]:
       st.markdown(f"- 👤 **{p_name}** ({goals} gol)")
-
-  # --- AGGIUNTA: TASTO PER APRIRE LA SCHERMATA RIEPILOGO FINALE ---
-  st.markdown("---")
-  if st.button(
-      "📋 APRI SCHERMATA RIEPILOGO FINALE",
-      type="primary",
-      use_container_width=True,
-  ):
-    st.markdown("---")
-    st.markdown(
-        f"""
-        <div class="summary-card">
-            <p style="margin:0; font-size:11px; color:#94a3b8; text-transform:uppercase; letter-spacing:1px;">RIEPILOGO FINALE - SIMULAZIONE PRO</p>
-            <h2 style="margin:5px 0; color:#ffffff; font-size:26px;">{casa} {top_3[0][0]} - {top_3[0][1]} {ospite}</h2>
-            <p style="margin:0; font-size:13px; color:#34d399; font-weight:bold;">RISULTATO PIÙ PROBABILE</p>
-            <p style="margin:3px 0 15px 0; font-size:12px; color:#cbd5e1;">Probabilità esatto: {top_3[0][2]:.1f}%</p>
-            
-            <p style="margin:10px 0 5px 0; font-size:11px; color:#94a3b8; text-transform:uppercase;">TOP 4 RISULTATI ESATTI</p>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    top_4_res = []
-    for i in range(min(4, len(ordinati))):
-      r = ris_unici[ordinati[i]]
-      p = (counts[ordinati[i]] / N_SIM) * 100
-      top_4_res.append((f"{r[0]}-{r[1]}", p))
-
-    r_cols = st.columns(4)
-    for i, (res_str, prob_val) in enumerate(top_4_res):
-      with r_cols[i]:
-        st.markdown(
-            f"""
-                <div class="res-box">
-                    <div style="font-size:18px; color:#ffffff;">{res_str}</div>
-                    <div style="font-size:12px; color:#34d399; font-weight:normal;">{prob_val:.1f}%</div>
-                </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-    st.markdown("<br>", unsafe_allow_html=True)
-
-    st.markdown(
-        f"""
-        <div style="background: rgba(6, 78, 59, 0.7); padding: 15px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.15);">
-            <p style="text-align:center; font-size:12px; color:#6ee7b7; text-transform:uppercase; font-weight:bold; margin-bottom:10px;">📊 1X2 & METRICHE DI GARA</p>
-            <div class="stat-row-clean"><span style="color:#ffffff; width:33%; text-align:left;"><b>{p_1:.1f}%</b></span><span style="color:#94a3b8; width:33%; text-align:center; font-size:11px;">PROBABILITÀ SEGNO 1</span><span style="color:#ffffff; width:33%; text-align:right;"><b>{p_2:.1f}%</b> (Segno 2)</span></div>
-            <div class="stat-row-clean"><span style="color:#ffffff; width:33%; text-align:left;"><b>{analisi['xg_f']:.2f}</b></span><span style="color:#94a3b8; width:33%; text-align:center; font-size:11px;">GOL ATTESI (xG)</span><span style="color:#ffffff; width:33%; text-align:right;"><b>{analisi['xg_s']:.2f}</b></span></div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
