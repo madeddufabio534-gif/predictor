@@ -83,8 +83,8 @@ st.markdown(
         font-weight: 700;
     }
     .team-box-home, .team-box-away {
-        padding: 20px;
-        border-radius: 16px;
+        padding: 25px;
+        border-radius: 18px;
         background: linear-gradient(135deg, rgba(6, 78, 59, 0.85) 0%, rgba(4, 47, 46, 0.75) 100%);
         text-align: center;
         border: 1px solid rgba(255, 255, 255, 0.2);
@@ -92,13 +92,70 @@ st.markdown(
         backdrop-filter: blur(10px);
     }
     .vs-text {
-        font-size: 26px;
+        font-size: 28px;
         font-weight: 900;
         background: linear-gradient(45deg, #ffffff, #34d399, #f59e0b);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         text-align: center;
-        margin-top: 35px;
+        margin-top: 45px;
+        text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+    }
+    .stat-row {
+        background: rgba(6, 78, 59, 0.6);
+        padding: 12px 20px;
+        border-radius: 12px;
+        margin-bottom: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-weight: 600;
+        backdrop-filter: blur(8px);
+    }
+    .motivation-card {
+        background: linear-gradient(135deg, rgba(4, 47, 46, 0.85) 0%, rgba(6, 78, 59, 0.7) 100%);
+        padding: 24px;
+        border-radius: 16px;
+        border-left: 4px solid #ffffff;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        margin-top: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
+    }
+    .bet-card {
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(4, 47, 46, 0.85) 100%);
+        padding: 22px;
+        border-radius: 16px;
+        border-left: 4px solid #34d399;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        margin-top: 20px;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
+    }
+    .stat-card {
+        background: rgba(6, 78, 59, 0.65);
+        padding: 20px;
+        border-radius: 14px;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        text-align: center;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+    }
+    .badge-live {
+        display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 700;
+        background-color: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+    .badge-fallback {
+        display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 700;
+        background-color: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+    .alert-box {
+        background: rgba(239, 68, 68, 0.15);
+        border: 1px solid rgba(239, 68, 68, 0.4);
+        padding: 20px;
+        border-radius: 12px;
+        text-align: center;
+        margin-top: 30px;
+        color: #fca5a5;
     }
     .summary-card {
         background: linear-gradient(135deg, rgba(6, 78, 59, 0.9) 0%, rgba(4, 47, 46, 0.85) 100%);
@@ -129,19 +186,6 @@ st.markdown(
         align-items: center;
         font-weight: 600;
     }
-    .badge-live {
-        display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 700;
-        background-color: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(255, 255, 255, 0.3);
-    }
-    .alert-box {
-        background: rgba(239, 68, 68, 0.15);
-        border: 1px solid rgba(239, 68, 68, 0.4);
-        padding: 20px;
-        border-radius: 12px;
-        text-align: center;
-        margin-top: 30px;
-        color: #fca5a5;
-    }
     </style>
 """,
     unsafe_allow_html=True,
@@ -151,8 +195,7 @@ API_KEY = "d7f0800ed81a46509b1d980232a61fdb"
 
 st.title("⚽ Football Match Center & Pronostici Pro")
 st.markdown(
-    "Modello avanzato con **4 Categorie (Big, Media, Bassa, Neopromosse)** e"
-    " Dashboard Unificata."
+    "Modello avanzato con **4 Categorie (Big, Media, Bassa, Neopromosse)**."
 )
 
 competizioni = {
@@ -241,6 +284,7 @@ def scarica_dati_completi(comp_code):
         team_name = row["team"]["name"]
         played = row["playedGames"] if row["playedGames"] > 0 else 1
 
+        # --- SUDDIVISIONE IN 4 CATEGORIE ---
         neopromosse_keywords = ["monza", "frosinone", "venezia"]
         bassa_keywords = ["lecce", "cagliari", "empoli", "verona", "spezia"]
         big_keywords = [
@@ -409,10 +453,47 @@ def analizza_partita_pro(casa, ospite, history, standings):
   tiri_ospite = round(xg_ospite * 6.2, 1)
   porta_casa = round(xg_casa * 2.3, 1)
   porta_ospite = round(xg_ospite * 2.3, 1)
-  falli_casa = int(round(11 + (xg_ospite * 0.8), 0))
-  falli_ospite = int(round(11 + (xg_casa * 0.8), 0))
-  gialli_casa = int(round(1.5 + (xg_ospite * 0.3), 0))
-  gialli_ospite = int(round(1.5 + (xg_casa * 0.3), 0))
+
+  tot_xg = xg_casa + xg_ospite
+  diff_xg = abs(xg_casa - xg_ospite)
+
+  if tot_xg >= 3.0:
+    stile_match = "🔥 **Partita Aperta e ad Alto Potenziale Offensivo**"
+    desc_stile = (
+        f"Gara aperta tra {dati_casa['status_label']} e"
+        f" {dati_ospite['status_label']}."
+    )
+  elif tot_xg <= 2.1:
+    stile_match = (
+        "🛡️ **Partita Tattica, Bloccata e a Prevalenza Difensiva**"
+    )
+    desc_stile = (
+        f"Confronto prudente guidato dai profili di {dati_casa['status_label']}"
+        f" e {dati_ospite['status_label']}."
+    )
+  else:
+    stile_match = "⚖️ **Partita Equilibrata e di Gran Movimento a Metà Campo**"
+    desc_stile = (
+        f"Sfida equilibrata tra {dati_casa['status_label']} e"
+        f" {dati_ospite['status_label']}."
+    )
+
+  if diff_xg > 0.8:
+    dominatore = casa if xg_casa > xg_ospite else ospite
+    desc_inerzia = (
+        f"Leggero vantaggio strutturale e di controllo per **{dominatore}**."
+    )
+  else:
+    desc_inerzia = "Grande equilibrio strutturale in campo."
+
+  motivazione = (
+      f"{stile_match}<br><br>{desc_stile}<br><br>{desc_inerzia}<br><br>"
+      f"<span style='color:#6ee7b7;'>Status Squadre:</span> {casa} ="
+      f" <i>{dati_casa['status_label']}</i> | {ospite} ="
+      f" <i>{dati_ospite['status_label']}</i><br>"
+      f"<span style='color:#6ee7b7;'>xG Corretti:</span> ({casa}:"
+      f" <b>{xg_casa}</b> vs {ospite}: <b>{xg_ospite}</b>)"
+  )
 
   return {
       "xg_f": xg_casa,
@@ -421,16 +502,11 @@ def analizza_partita_pro(casa, ospite, history, standings):
       "tiri_t": tiri_ospite,
       "porta_c": porta_casa,
       "porta_t": porta_ospite,
-      "falli_c": falli_casa,
-      "falli_t": falli_ospite,
-      "gialli_c": gialli_casa,
-      "gialli_t": gialli_ospite,
       "media_gf_c": reale_gf_c,
       "media_gs_c": reale_gs_c,
       "media_gf_o": reale_gf_o,
       "media_gs_o": reale_gs_o,
-      "status_c": dati_casa["status_label"],
-      "status_o": dati_ospite["status_label"],
+      "motivazione": motivazione,
   }
 
 
@@ -455,13 +531,13 @@ if not matches_future:
 else:
   if history_matches:
     st.markdown(
-        f'<span class="badge-live">🟢 Dashboard Unificata Attiva'
+        f'<span class="badge-live">🟢 Modello a 4 Categorie Attivo'
         f" ({scelta_comp_label})</span>",
         unsafe_allow_html=True,
     )
   else:
     st.markdown(
-        '<span class="badge-fallback" style="background-color:rgba(245,158,11,0.2); color:#fbbf24; padding:4px 12px; border-radius:20px; font-weight:700; font-size:12px;">🟡 Connessione limitata</span>',
+        '<span class="badge-fallback">🟡 Connessione limitata</span>',
         unsafe_allow_html=True,
     )
 
@@ -483,174 +559,234 @@ else:
 
   analisi = analizza_partita_pro(casa, ospite, history_matches, standings)
 
-  # --- INTESTAZIONE SQUADRE ---
-  c_box1, c_box_vs, c_box2 = st.columns([3, 1, 3])
-  with c_box1:
-    logo_html_c = (
-        f'<img src="{crest_c}" width="50" style="margin-bottom:8px;">'
-        if crest_c
-        else ""
-    )
+  col_sinistra, col_destra = st.columns([1.1, 1.4], gap="large")
+
+  with col_sinistra:
     st.markdown(
-        f"""
-            <div class="team-box-home">
-                {logo_html_c}
-                <h3 style="margin:0; color:#ffffff; font-size:15px;">{casa}</h3>
-                <span style="font-size:11px; color:#34d399;">{analisi['status_c']}</span>
-            </div>
-        """,
-        unsafe_allow_html=True,
-    )
-  with c_box_vs:
-    st.markdown('<div class="vs-text">VS</div>', unsafe_allow_html=True)
-  with c_box2:
-    logo_html_o = (
-        f'<img src="{crest_o}" width="50" style="margin-bottom:8px;">'
-        if crest_o
-        else ""
-    )
-    st.markdown(
-        f"""
-            <div class="team-box-away">
-                {logo_html_o}
-                <h3 style="margin:0; color:#ffffff; font-size:15px;">{ospite}</h3>
-                <span style="font-size:11px; color:#34d399;">{analisi['status_o']}</span>
-            </div>
-        """,
+        f'<div class="match-header">Scheda della Partita • Ore {orario}</div>',
         unsafe_allow_html=True,
     )
 
-  st.markdown("<br>", unsafe_allow_html=True)
-
-  # --- MOTORE DI SIMULAZIONE AUTOMATICO (SENZA BISOGNO DI CLICCARE PULSANTI) ---
-  N_SIM = 1_000_000
-  gol_c = np.random.poisson(analisi["xg_f"], N_SIM)
-  gol_t = np.random.poisson(analisi["xg_s"], N_SIM)
-
-  p_1 = np.sum(gol_c > gol_t) / N_SIM * 100
-  p_x = np.sum(gol_c == gol_t) / N_SIM * 100
-  p_2 = np.sum(gol_c < gol_t) / N_SIM * 100
-
-  coppie = list(zip(gol_c, gol_t))
-  ris_unici, counts = np.unique(coppie, axis=0, return_counts=True)
-  ordinati = np.argsort(counts)[::-1]
-
-  # Top risultato esatto principale
-  top_rc, top_ro = ris_unici[ordinati[0]]
-  top_prob = (counts[ordinati[0]] / N_SIM) * 100
-
-  dominante_txt = (
-      f"{casa} AVANTI AL 90'"
-      if p_1 > p_2
-      else (f"{ospite} AVANTI AL 90'" if p_2 > p_1 else "EQUILIBRIO AL 90'")
-  )
-  vincente_perc = max(p_1, p_2, p_x)
-
-  # Top 4 risultati esatti per la riga stile app
-  top_4 = []
-  for i in range(min(4, len(ordinati))):
-    r = ris_unici[ordinati[i]]
-    p = (counts[ordinati[i]] / N_SIM) * 100
-    top_4.append((f"{r[0]}-{r[1]}", p))
-
-  # --- SCHERMATA UNIFICATA STILE APP (FOTO) ---
-  st.markdown(
-      f"""
-    <div class="summary-card">
-        <p style="margin:0; font-size:11px; color:#94a3b8; text-transform:uppercase; letter-spacing:1px;">SCELTO TRA I 1.000.000 DI SIMULAZIONI PRO</p>
-        <h2 style="margin:5px 0; color:#ffffff; font-size:26px;">{casa} {top_rc} - {top_ro} {ospite}</h2>
-        <p style="margin:0; font-size:13px; color:#34d399; font-weight:bold;">{dominante_txt}</p>
-        <p style="margin:3px 0 15px 0; font-size:12px; color:#cbd5e1;">Risultato: {top_prob:.1f}% | Probabilità esito principale al {vincente_perc:.0f}%</p>
-        
-        <p style="margin:10px 0 5px 0; font-size:11px; color:#94a3b8; text-transform:uppercase;">RISULTATI ESATTI AL 90° PIÙ PROBABILI</p>
-    </div>
-    """,
-      unsafe_allow_html=True,
-  )
-
-  # Riga dei 4 risultati esatti
-  r_cols = st.columns(4)
-  for i, (res_str, prob_val) in enumerate(top_4):
-    with r_cols[i]:
+    c_box1, c_box_vs, c_box2 = st.columns([3, 1, 3])
+    with c_box1:
+      logo_html_c = (
+          f'<img src="{crest_c}" width="60" style="margin-bottom:10px;">'
+          if crest_c
+          else ""
+      )
       st.markdown(
           f"""
-            <div class="res-box">
-                <div style="font-size:18px; color:#ffffff;">{res_str}</div>
-                <div style="font-size:12px; color:#34d399; font-weight:normal;">{prob_val:.1f}%</div>
-            </div>
-        """,
+                <div class="team-box-home">
+                    {logo_html_c}
+                    <h3 style="margin:0; color:#ffffff; font-size:16px;">{casa}</h3>
+                </div>
+            """,
+          unsafe_allow_html=True,
+      )
+    with c_box_vs:
+      st.markdown('<div class="vs-text">VS</div>', unsafe_allow_html=True)
+    with c_box2:
+      logo_html_o = (
+          f'<img src="{crest_o}" width="60" style="margin-bottom:10px;">'
+          if crest_o
+          else ""
+      )
+      st.markdown(
+          f"""
+                <div class="team-box-away">
+                    {logo_html_o}
+                    <h3 style="margin:0; color:#ffffff; font-size:16px;">{ospite}</h3>
+                </div>
+            """,
           unsafe_allow_html=True,
       )
 
-  st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
+    avvia_sim = st.button(
+        "🚀 AVVIA SIMULAZIONE A 4 CATEGORIE",
+        type="primary",
+        use_container_width=True,
+    )
 
-  # --- TABELLA STATISTICHE & 1X2 (STILE FOTO) ---
+  with col_destra:
+    st.markdown(
+        '<div class="match-header" style="text-align:center;">📊 Metriche'
+        " Ponderate & Categorie</div>",
+        unsafe_allow_html=True,
+    )
+
+    statistiche_mostrate = [
+        (
+            "GOL FATTI (Corretti per Categoria)",
+            f"{analisi['media_gf_c']:.2f}",
+            f"{analisi['media_gf_o']:.2f}",
+        ),
+        (
+            "GOL SUBITI (Media Ponderata)",
+            f"{analisi['media_gs_c']:.2f}",
+            f"{analisi['media_gs_o']:.2f}",
+        ),
+        (
+            "GOL ATTESI CORRETTI (xG)",
+            f"{analisi['xg_f']:.2f}",
+            f"{analisi['xg_s']:.2f}",
+        ),
+        ("TIRI STIMATI", f"{analisi['tiri_c']:.1f}", f"{analisi['tiri_t']:.1f}"),
+        (
+            "TIRI IN PORTA STIMATI",
+            f"{analisi['porta_c']:.1f}",
+            f"{analisi['porta_t']:.1f}",
+        ),
+    ]
+
+    for label, val_c, val_t in statistiche_mostrate:
+      st.markdown(
+          f"""
+                <div class="stat-row">
+                    <span style="color: #ffffff; font-size: 15px; width: 30%; text-align: left; font-weight:700;">{val_c}</span>
+                    <span style="color: #e2e8f0; font-size: 12px; width: 40%; text-align: center; letter-spacing: 0.5px;">{label}</span>
+                    <span style="color: #ffffff; font-size: 15px; width: 30%; text-align: right; font-weight:700;">{val_t}</span>
+                </div>
+            """,
+          unsafe_allow_html=True,
+      )
+
   st.markdown(
-      """
-    <div style="background: rgba(6, 78, 59, 0.7); padding: 15px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.15);">
-        <p style="text-align:center; font-size:12px; color:#6ee7b7; text-transform:uppercase; font-weight:bold; margin-bottom:10px;">📊 1X2 & METRICHE DI GARA</p>
-    """,
+      '<div class="match-header">📋 Analisi Tattica & Categorie</div>',
       unsafe_allow_html=True,
   )
-
-  statistiche_mostrate = [
-      (
-          f"Vittoria {casa} ({p_1:.1f}%)",
-          "PROBABILITÀ 1X2",
-          f"Vittoria {ospite} ({p_2:.1f}%)",
-      ),
-      ("Pareggio (X)", f"{p_x:.1f}%", "ESITO X"),
-      (f"{analisi['tiri_c']:.0f}", "TIRI STIMATI", f"{analisi['tiri_t']:.0f}"),
-      (
-          f"{analisi['porta_c']:.0f}",
-          "TIRI IN PORTA",
-          f"{analisi['porta_t']:.0f}",
-      ),
-      (f"{analisi['falli_c']}", "FALLI STIMATI", f"{analisi['falli_t']}"),
-      (f"{analisi['gialli_c']}", "CARTELLINI GIALLI", f"{analisi['gialli_t']}"),
-  ]
-
-  # Mostriamo le metriche chiave in modo pulito
   st.markdown(
       f"""
-        <div class="stat-row-clean"><span style="color:#ffffff; width:33%; text-align:left;"><b>{p_1:.1f}%</b></span><span style="color:#94a3b8; width:33%; text-align:center; font-size:11px;">PROBABILITÀ SEGNO 1</span><span style="color:#ffffff; width:33%; text-align:right;"><b>{p_2:.1f}%</b> (Segno 2)</span></div>
-        <div class="stat-row-clean"><span style="color:#ffffff; width:33%; text-align:left;"><b>{analisi['tiri_c']}</b></span><span style="color:#94a3b8; width:33%; text-align:center; font-size:11px;">TIRI</span><span style="color:#ffffff; width:33%; text-align:right;"><b>{analisi['tiri_t']}</b></span></div>
-        <div class="stat-row-clean"><span style="color:#ffffff; width:33%; text-align:left;"><b>{analisi['porta_c']}</b></span><span style="color:#94a3b8; width:33%; text-align:center; font-size:11px;">TIRI IN PORTA</span><span style="color:#ffffff; width:33%; text-align:right;"><b>{analisi['porta_t']}</b></span></div>
-        <div class="stat-row-clean"><span style="color:#ffffff; width:33%; text-align:left;"><b>{analisi['falli_c']}</b></span><span style="color:#94a3b8; width:33%; text-align:center; font-size:11px;">FALLI</span><span style="color:#ffffff; width:33%; text-align:right;"><b>{analisi['falli_t']}</b></span></div>
-        <div class="stat-row-clean"><span style="color:#ffffff; width:33%; text-align:left;"><b>{analisi['gialli_c']}</b></span><span style="color:#94a3b8; width:33%; text-align:center; font-size:11px;">GIALLI</span><span style="color:#ffffff; width:33%; text-align:right;"><b>{analisi['gialli_t']}</b></span></div>
+        <div class="motivation-card">
+            <p style="margin:0; color:#f8fafc; font-size:15px; line-height:1.6;">
+                {analisi['motivazione']}
+            </p>
+        </div>
     """,
       unsafe_allow_html=True,
   )
 
-  st.markdown("</div>", unsafe_allow_html=True)
-  st.markdown("<br>", unsafe_allow_html=True)
+  if avvia_sim:
+    N_SIM = 1_000_000
+    with st.spinner("Elaborazione Monte Carlo a 4 categorie in corso..."):
+      gol_c = np.random.poisson(analisi["xg_f"], N_SIM)
+      gol_t = np.random.poisson(analisi["xg_s"], N_SIM)
 
-  # --- SEZIONE IN BASSO: GOL ATTESI (xG) E STATISTICHE PREVISTE (come nella foto) ---
-  st.markdown(
-      """
-    <div style="background: linear-gradient(135deg, rgba(4, 47, 46, 0.9) 0%, rgba(6, 78, 59, 0.8) 100%); padding: 20px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.2);">
-        <p style="text-align:center; font-size:11px; color:#6ee7b7; text-transform:uppercase; font-weight:bold; letter-spacing:1px; margin-bottom:15px;">STATISTICHE PREVISTE (GOL ATTESI xG)</p>
-        <div style="display:flex; justify-content:space-between; align-items:center; padding: 0 20px;">
-            <div style="text-align:center;">
-                <h1 style="margin:0; color:#ffffff; font-size:36px;">{:.2f}</h1>
-                <p style="margin:0; font-size:12px; color:#cbd5e1;">{casa}</p>
-            </div>
-            <div style="text-align:center; font-size:13px; color:#94a3b8; text-transform:uppercase; font-weight:bold;">
-                GOL ATTESI
-            </div>
-            <div style="text-align:center;">
-                <h1 style="margin:0; color:#ffffff; font-size:36px;">{:.2f}</h1>
-                <p style="margin:0; font-size:12px; color:#cbd5e1;">{ospite}</p>
-            </div>
+      p_1 = np.sum(gol_c > gol_t) / N_SIM * 100
+      p_x = np.sum(gol_c == gol_t) / N_SIM * 100
+      p_2 = np.sum(gol_c < gol_t) / N_SIM * 100
+      p_1x = np.sum(gol_c >= gol_t) / N_SIM * 100
+      p_x2 = np.sum(gol_c <= gol_t) / N_SIM * 100
+      p_over15 = np.sum((gol_c + gol_t) >= 2) / N_SIM * 100
+      p_over25 = np.sum((gol_c + gol_t) >= 3) / N_SIM * 100
+      p_gol = np.sum((gol_c > 0) & (gol_t > 0)) / N_SIM * 100
+      p_nogol = 100 - p_gol
+
+      coppie = list(zip(gol_c, gol_t))
+      ris_unici, counts = np.unique(coppie, axis=0, return_counts=True)
+      ordinati = np.argsort(counts)[::-1]
+
+      top_3 = []
+      for i in range(min(3, len(ordinati))):
+        r = ris_unici[ordinati[i]]
+        prob = (counts[ordinati[i]] / N_SIM) * 100
+        top_3.append((r[0], r[1], prob))
+
+    st.markdown("---")
+    st.subheader("🎯 Esito Finale & Pronostici Corretti")
+
+    col_e1, col_e2, col_e3 = st.columns(3)
+    col_e1.metric(f"Vittoria ({casa})", f"{p_1:.2f}%")
+    col_e2.metric("Pareggio (X)", f"{p_x:.2f}%")
+    col_e3.metric(f"Vittoria ({ospite})", f"{p_2:.2f}%")
+
+    candidati_giocata = []
+    if p_gol > 52:
+      candidati_giocata.append(
+          ("Goal (Entrambe a segno)", p_gol, f"Buoni presupposti ({p_gol:.1f}%).")
+      )
+    elif p_nogol > 52:
+      candidati_giocata.append(
+          ("No Goal", p_nogol, f"Tattica o divari marcati ({p_nogol:.1f}%).")
+      )
+
+    if p_over25 > 50:
+      candidati_giocata.append(
+          ("Over 2.5 Gol", p_over25, f"Volume di xG alto ({p_over25:.1f}%).")
+      )
+    else:
+      p_under25 = 100 - p_over25
+      if p_under25 > 50:
+        candidati_giocata.append((
+            "Under 2.5 Gol",
+            p_under25,
+            f"Fattore prudenza: Under 2.5 al {p_under25:.1f}%.",
+        ))
+
+    if p_1 > 48:
+      candidati_giocata.append(
+          (f"1 (Vittoria {casa})", p_1, f"Fattore campo/valori ({p_1:.1f}%).")
+      )
+    elif p_2 > 45:
+      candidati_giocata.append((
+          f"2 (Vittoria {ospite})",
+          p_2,
+          f"Forza della squadra ospite ({p_2:.1f}%).",
+      ))
+    elif p_1x > 70:
+      candidati_giocata.append(
+          ("1X Doppia Chance", p_1x, f"Copertura solida ({p_1x:.1f}%).")
+      )
+    elif p_x2 > 70:
+      candidati_giocata.append(
+          ("X2 Doppia Chance", p_x2, f"Copertura solida ({p_x2:.1f}%).")
+      )
+
+    if not candidati_giocata:
+      candidati_giocata.append((
+          "Over 1.5 Gol",
+          p_over15,
+          f"Mercato conservativo al {p_over15:.1f}%.",
+      ))
+
+    candidati_giocata.sort(key=lambda x: x[1], reverse=True)
+    miglior_nome, miglior_prob, miglior_motivazione = candidati_giocata[0]
+
+    affidabilita = (
+        "Alta"
+        if miglior_prob >= 70
+        else ("Media / Buona" if miglior_prob >= 55 else "Studiata")
+    )
+
+    st.markdown(
+        f"""
+        <div class="bet-card">
+            <h4 style="margin:0 0 8px 0; color:#34d399;">💡 Giocata Consigliata</h4>
+            <p style="margin:0 0 5px 0; font-size:20px; font-weight:bold; color:#ffffff;">🎯 {miglior_nome} ({miglior_prob:.1f}%)</p>
+            <p style="margin:0 0 8px 0; font-size:13px; color:#cbd5e1;"><b>Analisi:</b> {miglior_motivazione}</p>
+            <p style="margin:0; font-size:12px; color:#94a3b8;">Affidabilità: <span style="color:#34d399; font-weight:bold;">{affidabilita}</span></p>
         </div>
-    </div>
-    """.format(
-          analisi["xg_f"], analisi["xg_s"]
-      ),
-      unsafe_allow_html=True,
-  )
+    """,
+        unsafe_allow_html=True,
+    )
 
-  # --- SEZIONE MARCATORI ---
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("### 🔥 Top 3 Risultati Esatti più Probabili")
+
+    cols_res = st.columns(3)
+    for i, (rc, ro, p) in enumerate(top_3):
+      with cols_res[i]:
+        st.markdown(
+            f"""
+                <div class="stat-card">
+                    <span style="color:#ffffff; font-weight:bold; font-size:13px; letter-spacing:1px;"># {i+1} SCELTA</span>
+                    <h2 style="margin:10px 0; color:#ffffff; font-size:28px;">{rc} - {ro}</h2>
+                    <span style="color:#34d399; font-weight:600; font-size:14px;">Probabilità: {p:.2f}%</span>
+                </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
   st.markdown("<br>", unsafe_allow_html=True)
   st.markdown("### ⚽ Principali Firme Offensive")
   col_m1, col_m2 = st.columns(2)
@@ -666,3 +802,57 @@ else:
         scorers.get(ospite, []), key=lambda x: x[1], reverse=True
     )[:3]:
       st.markdown(f"- 👤 **{p_name}** ({goals} gol)")
+
+  # --- AGGIUNTA: TASTO PER APRIRE LA SCHERMATA RIEPILOGO FINALE ---
+  st.markdown("---")
+  if st.button(
+      "📋 APRI SCHERMATA RIEPILOGO FINALE",
+      type="primary",
+      use_container_width=True,
+  ):
+    st.markdown("---")
+    st.markdown(
+        f"""
+        <div class="summary-card">
+            <p style="margin:0; font-size:11px; color:#94a3b8; text-transform:uppercase; letter-spacing:1px;">RIEPILOGO FINALE - SIMULAZIONE PRO</p>
+            <h2 style="margin:5px 0; color:#ffffff; font-size:26px;">{casa} {top_3[0][0]} - {top_3[0][1]} {ospite}</h2>
+            <p style="margin:0; font-size:13px; color:#34d399; font-weight:bold;">RISULTATO PIÙ PROBABILE</p>
+            <p style="margin:3px 0 15px 0; font-size:12px; color:#cbd5e1;">Probabilità esatto: {top_3[0][2]:.1f}%</p>
+            
+            <p style="margin:10px 0 5px 0; font-size:11px; color:#94a3b8; text-transform:uppercase;">TOP 4 RISULTATI ESATTI</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    top_4_res = []
+    for i in range(min(4, len(ordinati))):
+      r = ris_unici[ordinati[i]]
+      p = (counts[ordinati[i]] / N_SIM) * 100
+      top_4_res.append((f"{r[0]}-{r[1]}", p))
+
+    r_cols = st.columns(4)
+    for i, (res_str, prob_val) in enumerate(top_4_res):
+      with r_cols[i]:
+        st.markdown(
+            f"""
+                <div class="res-box">
+                    <div style="font-size:18px; color:#ffffff;">{res_str}</div>
+                    <div style="font-size:12px; color:#34d399; font-weight:normal;">{prob_val:.1f}%</div>
+                </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    st.markdown(
+        f"""
+        <div style="background: rgba(6, 78, 59, 0.7); padding: 15px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.15);">
+            <p style="text-align:center; font-size:12px; color:#6ee7b7; text-transform:uppercase; font-weight:bold; margin-bottom:10px;">📊 1X2 & METRICHE DI GARA</p>
+            <div class="stat-row-clean"><span style="color:#ffffff; width:33%; text-align:left;"><b>{p_1:.1f}%</b></span><span style="color:#94a3b8; width:33%; text-align:center; font-size:11px;">PROBABILITÀ SEGNO 1</span><span style="color:#ffffff; width:33%; text-align:right;"><b>{p_2:.1f}%</b> (Segno 2)</span></div>
+            <div class="stat-row-clean"><span style="color:#ffffff; width:33%; text-align:left;"><b>{analisi['xg_f']:.2f}</b></span><span style="color:#94a3b8; width:33%; text-align:center; font-size:11px;">GOL ATTESI (xG)</span><span style="color:#ffffff; width:33%; text-align:right;"><b>{analisi['xg_s']:.2f}</b></span></div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
