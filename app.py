@@ -195,8 +195,8 @@ API_KEY = "d7f0800ed81a46509b1d980232a61fdb"
 
 st.title("⚽ Football Match Center & Pronostici Pro")
 st.markdown(
-    "Modello avanzato con **Classifica Completa dei Valori delle Rose (36"
-    " Club)**."
+    "Modello avanzato con **Mappatura Completa Rose & Integrazione Dati per la"
+    " Champions**."
 )
 
 competizioni = {
@@ -215,72 +215,139 @@ scelta_comp_label = st.radio(
 )
 COMPETITION_CODE = competizioni[scelta_comp_label]
 
-# --- CLASSIFICA COMPLETA VALORI DELLE ROSE (IN MILIONI DI EURO) ---
+# --- MAPPA VALORI DELLE ROSE (36 SQUADRE CON ALIAS ESTESI PER API) ---
 SQUAD_VALUES = {
+    # 1. Real Madrid
     "real madrid": 1460,
+    "real madrid cf": 1460,
+    # 2. Manchester City
     "manchester city": 1430,
+    "manchester city fc": 1430,
+    "man city": 1430,
+    # 3. PSG
     "paris saint-germain": 1360,
+    "paris saint-germain fc": 1360,
     "psg": 1360,
+    # 4. Arsenal
     "arsenal": 1330,
-    "fc arsenal": 1330,
+    "arsenal fc": 1330,
+    # 5. Barcellona
     "barcelona": 1260,
-    "fc barcellona": 1260,
+    "fc barcelona": 1260,
     "barcellona": 1260,
+    # 6. Bayern Monaco
     "bayern": 1040,
+    "bayern munich": 1040,
+    "fc bayern münchen": 1040,
     "bayern monaco": 1040,
-    "fc bayern monaco": 1040,
+    # 7. Liverpool
     "liverpool": 1030,
-    "fc liverpool": 1030,
+    "liverpool fc": 1030,
+    # 8. Manchester United
     "manchester united": 924,
+    "manchester united fc": 924,
+    "man utd": 924,
+    # 9. Inter
     "inter": 730,
     "internazionale": 730,
+    "fc internazionale milano": 730,
+    # 10. Atletico Madrid
     "atletico madrid": 680,
     "atlé tico de madrid": 680,
-    "atletico de madrid": 680,
+    "club atlético de madrid": 680,
+    "atletico": 680,
+    # 11. RB Leipzig
     "rb leipzig": 610,
     "rasenballsport leipzig": 610,
     "leipzig": 610,
+    # 12. Roma
     "roma": 580,
     "as roma": 580,
+    # 13. Aston Villa
     "aston villa": 545,
+    "aston villa fc": 545,
+    # 14. Borussia Dortmund
     "dortmund": 510,
     "borussia dortmund": 510,
+    "bvb": 510,
+    # 15. Napoli
     "napoli": 496,
     "ssc napoli": 496,
+    # 16. Como
     "como": 460,
     "como 1907": 460,
+    # 17. Sporting CP
     "sporting": 457,
     "sporting cp": 457,
+    "sporting lisbon": 457,
+    "sporting cp lisboa": 457,
+    # 18. Galatasaray
     "galatasaray": 412,
+    "galatasaray sk": 412,
+    # 19. Porto
     "porto": 390,
     "fc porto": 390,
+    # 20. Bayer Leverkusen
     "bayer leverkusen": 380,
     "leverkusen": 380,
+    "bayer 04 leverkusen": 380,
+    # 21. Stoccarda
     "stoccarda": 340,
+    "stuttgart": 340,
     "vfb stuttgart": 340,
+    # 22. PSV Eindhoven
     "psv": 320,
     "psv eindhoven": 320,
+    # 23. Lille
     "lille": 290,
     "losc lille": 290,
+    # 24. Lens
     "lens": 270,
+    "rc lens": 270,
     "racing club de lens": 270,
+    # 25. Feyenoord
     "feyenoord": 260,
+    "feyenoord rotterdam": 260,
+    # 26. Real Betis
     "real betis": 240,
+    "betis": 240,
+    "real betis balompié": 240,
+    # 27. Villarreal
     "villarreal": 215,
+    "villarreal cf": 215,
+    # 28. Fenerbahce
     "fenerbahçe": 200,
     "fenerbahce": 200,
+    "fenerbahçe sk": 200,
+    # 29. Club Brugge
     "club brugge": 165,
+    "brugge": 165,
+    "club brugge kv": 165,
+    # 30. Slavia Praga
     "slavia praga": 125,
     "slavia praha": 125,
+    "sk slavia praha": 125,
+    # 31. Shakhtar Donetsk
     "shakhtar donetsk": 110,
     "shakhtar": 110,
+    "fc shakhtar donetsk": 110,
+    # 32. AEK Atene
     "aek atene": 85,
+    "aek athens": 85,
     "aek": 85,
+    "aek athens fc": 85,
+    # 33. Bodø/Glimt
     "bodø/glimt": 65,
     "bodo/glimt": 65,
+    "fk bodø/glimt": 65,
+    # 34. Viking Stavanger
     "viking stavanger": 48,
     "viking": 48,
+    "viking fk": 48,
+    # 35. Slovan Bratislava
     "slovan bratislava": 32,
+    "sk slovan bratislava": 32,
+    # 36. Sabah FK
     "sabah fk": 19,
     "sabah": 19,
 }
@@ -288,11 +355,15 @@ SQUAD_VALUES = {
 
 def get_squad_value_multiplier(team_name):
   t_clean = team_name.lower().strip()
-  val_mln = 250  # Default per squadre non mappate
+  val_mln = None
+
   for k, v in SQUAD_VALUES.items():
-    if k in t_clean:
+    if k in t_clean or t_clean in k:
       val_mln = v
       break
+
+  if val_mln is None:
+    val_mln = 250  # Fallback prudenziale per formazioni minori non censite
 
   if val_mln >= 1200:
     return 1.45, f"💎 Elite Top Squad ({val_mln} Mln €)"
@@ -364,7 +435,7 @@ def scarica_dati_completi(comp_code):
               "gol_ospite": sc["away"],
           })
 
-    # Integrazione storica del campionato nazionale se si sceglie la Champions
+    # Integrazione storica del campionato nazionale per la Champions League
     if comp_code == "CL":
       url_league_fin = "https://api.football-data.org/v4/competitions/SA/matches?status=FINISHED"
       res_league_fin = requests.get(url_league_fin, headers=headers, timeout=5)
@@ -552,7 +623,7 @@ def analizza_partita_pro(casa, ospite, history, standings):
   if diff_xg > 0.8:
     dominatore = casa if xg_casa > xg_ospite else ospite
     desc_inerzia = (
-        f"Il maggior valore e peso della rosa da un chiaro vantaggio a"
+        f"Il maggior valore della rosa garantisce un chiaro vantaggio a"
         f" **{dominatore}**."
     )
   else:
@@ -563,7 +634,7 @@ def analizza_partita_pro(casa, ospite, history, standings):
       f"<span style='color:#6ee7b7;'>Valore Rose:</span> {casa} ="
       f" <i>{dati_casa['status_label']}</i> | {ospite} ="
       f" <i>{dati_ospite['status_label']}</i><br>"
-      f"<span style='color:#6ee7b7;'>xG Ponderati per Categoria:</span> ({casa}:"
+      f"<span style='color:#6ee7b7;'>xG Ponderati:</span> ({casa}:"
       f" <b>{xg_casa}</b> vs {ospite}: <b>{xg_ospite}</b>)"
   )
 
@@ -603,7 +674,7 @@ if not matches_future:
 else:
   if history_matches:
     st.markdown(
-        f'<span class="badge-live">🟢 Modello Valutazione Rose Completo"</span>'
+        f'<span class="badge-live">🟢 Modello Valutazione Rose Completo'
         f" ({scelta_comp_label})</span>",
         unsafe_allow_html=True,
     )
