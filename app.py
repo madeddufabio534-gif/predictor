@@ -166,7 +166,7 @@ API_KEY = "d7f0800ed81a46509b1d980232a61fdb"
 
 st.title("⚽ Football Match Center & Pronostici Pro")
 st.markdown(
-    "Modello avanzato con **4 Categorie (Big, Media, Bassa, Neopromosse)**."
+    "Modello avanzato con **Integrazione Campionato per la Champions League**."
 )
 
 competizioni = {
@@ -241,6 +241,22 @@ def scarica_dati_completi(comp_code):
               "gol_ospite": sc["away"],
           })
 
+    # --- INTEGRAZIONE CAMPIONATO SE SI SELEZIONA LA CHAMPIONS LEAGUE ---
+    if comp_code == "CL":
+      # Scarichiamo anche lo storico della Serie A (SA) come riferimento principale per colmare la carenza di dati in Champions
+      url_league_fin = "https://api.football-data.org/v4/competitions/SA/matches?status=FINISHED"
+      res_league_fin = requests.get(url_league_fin, headers=headers, timeout=5)
+      if res_league_fin.status_code == 200:
+        for m in res_league_fin.json().get("matches", []):
+          sc = m.get("score", {}).get("fullTime", {})
+          if sc.get("home") is not None and sc.get("away") is not None:
+            history_matches.append({
+                "casa": m["homeTeam"]["name"],
+                "ospite": m["awayTeam"]["name"],
+                "gol_casa": sc["home"],
+                "gol_ospite": sc["away"],
+            })
+
     res_std = requests.get(url_standings, headers=headers, timeout=5)
     if res_std.status_code == 200:
       data_s = res_std.json()
@@ -255,7 +271,6 @@ def scarica_dati_completi(comp_code):
         team_name = row["team"]["name"]
         played = row["playedGames"] if row["playedGames"] > 0 else 1
 
-        # --- SUDDIVISIONE IN 4 CATEGORIE ---
         neopromosse_keywords = ["monza", "frosinone", "venezia"]
         bassa_keywords = ["lecce", "cagliari", "empoli", "verona", "spezia"]
         big_keywords = [
@@ -365,6 +380,7 @@ def analizza_partita_pro(casa, ospite, history, standings):
       m for m in history if m["casa"] == ospite or m["ospite"] == ospite
   ][-5:]
 
+  # --- PONDERAZIONE AVANZATA AVVERSARI (PESO DIFFERENZIATO SE SCARSI O FORTI) ---
   def calcola_rendimento_pesato(partite, squadra_target, standings_dict):
     if not partite:
       return 1.3, 1.1
@@ -376,12 +392,23 @@ def analizza_partita_pro(casa, ospite, history, standings):
       avversario = p["ospite"] if is_casa else p["casa"]
       dati_avv = standings_dict.get(avversario, {"forza_base": 1.0})
       forza_avv = dati_avv["forza_base"]
+
       gf = p["gol_casa"] if is_casa else p["gol_ospite"]
       gs = p["gol_ospite"] if is_casa else p["gol_casa"]
-      moltiplicatore_avv = max(0.5, forza_avv)
+
+      # Se l'avversario è forte (forza alta), il dato vale di più (più attendibile).
+      # Se l'avversario è scarso (forza bassa), il peso viene ridotto per evitare distorsioni.
+      if forza_avv > 1.2:
+        moltiplicatore_avv = 1.3  # Avversario forte -> dato più affidabile
+      elif forza_avv < 0.8:
+        moltiplicatore_avv = 0.75  # Avversario debole -> vale un po' meno
+      else:
+        moltiplicatore_avv = 1.0
+
       tot_gf_pesati += gf * moltiplicatore_avv
       tot_gs_pesati += gs * (2.0 - moltiplicatore_avv)
       peso_totale += moltiplicatore_avv
+
     if peso_totale == 0:
       return 1.3, 1.1
     return (tot_gf_pesati / peso_totale), (tot_gs_pesati / peso_totale)
@@ -502,7 +529,7 @@ if not matches_future:
 else:
   if history_matches:
     st.markdown(
-        f'<span class="badge-live">🟢 Modello a 4 Categorie Attivo'
+        f'<span class="badge-live">🟢 Modello Champions + Campionato Attivo'
         f" ({scelta_comp_label})</span>",
         unsafe_allow_html=True,
     )
@@ -773,3 +800,56 @@ else:
         scorers.get(ospite, []), key=lambda x: x[1], reverse=True
     )[:3]:
       st.markdown(f"- 👤 **{p_name}** ({goals} gol)")
+
+  st.markdown("---")
+  if st.button(
+      "📋 APRI SCHERMATA RIEPILOGO FINALE",
+      type="primary",
+      use_container_width=True,
+  ):
+    st.markdown("---")
+    st.markdown(
+        f"""
+        <div class="summary-card">
+            <p style="margin:0; font-size:11px; color:#94a3b8; text-transform:uppercase; letter-spacing:1px;">RIEPILOGO FINALE - SIMULAZIONE PRO</p>
+            <h2 style="margin:5px 0; color:#ffffff; font-size:26px;">{casa} {top_3[0][0]} - {top_3[0][1]} {ospite}</h2>
+            <p style="margin:0; font-size:13px; color:#34d399; font-weight:bold;">RISULTATO PIÙ PROBABILE</p>
+            <p style="margin:3px 0 15px 0; font-size:12px; color:#cbd5e1;">Probabilità esatto: {top_3[0][2]:.1f}%</p>
+            
+            <p style="margin:10px 0 5px 0; font-size:11px; color:#94a3b8; text-transform:uppercase;">TOP 4 RISULTATI ESATTI</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    top_4_res = []
+    for i in range(min(4, len(ordinati))):
+      r = ris_unici[ordinati[i]]
+      p = (counts[ordinati[i]] / N_SIM) * 100
+      top_4_res.append((f"{r[0]}-{r[1]}", p))
+
+    r_cols = st.columns(4)
+    for i, (res_str, prob_val) in enumerate(top_4_res):
+      with r_cols[i]:
+        st.markdown(
+            f"""
+                <div class="res-box">
+                    <div style="font-size:18px; color:#ffffff;">{res_str}</div>
+                    <div style="font-size:12px; color:#34d399; font-weight:normal;">{prob_val:.1f}%</div>
+                </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    st.markdown(
+        f"""
+        <div style="background: rgba(6, 78, 59, 0.7); padding: 15px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.15);">
+            <p style="text-align:center; font-size:12px; color:#6ee7b7; text-transform:uppercase; font-weight:bold; margin-bottom:10px;">📊 1X2 & METRICHE DI GARA</p>
+            <div class="stat-row-clean"><span style="color:#ffffff; width:33%; text-align:left;"><b>{p_1:.1f}%</b></span><span style="color:#94a3b8; width:33%; text-align:center; font-size:11px;">PROBABILITÀ SEGNO 1</span><span style="color:#ffffff; width:33%; text-align:right;"><b>{p_2:.1f}%</b> (Segno 2)</span></div>
+            <div class="stat-row-clean"><span style="color:#ffffff; width:33%; text-align:left;"><b>{analisi['xg_f']:.2f}</b></span><span style="color:#94a3b8; width:33%; text-align:center; font-size:11px;">GOL ATTESI (xG)</span><span style="color:#ffffff; width:33%; text-align:right;"><b>{analisi['xg_s']:.2f}</b></span></div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
