@@ -157,6 +157,35 @@ st.markdown(
         margin-top: 30px;
         color: #fca5a5;
     }
+    .summary-card {
+        background: linear-gradient(135deg, rgba(6, 78, 59, 0.9) 0%, rgba(4, 47, 46, 0.85) 100%);
+        border: 1px solid rgba(52, 211, 153, 0.4);
+        padding: 25px;
+        border-radius: 18px;
+        text-align: center;
+        margin-top: 20px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+    .res-box {
+        background: rgba(4, 47, 46, 0.9);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        padding: 12px;
+        border-radius: 12px;
+        text-align: center;
+        font-weight: bold;
+        color: #ffffff;
+    }
+    .stat-row-clean {
+        background: rgba(6, 78, 59, 0.5);
+        padding: 10px 15px;
+        border-radius: 10px;
+        margin-bottom: 6px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-weight: 600;
+    }
     </style>
 """,
     unsafe_allow_html=True,
@@ -166,7 +195,8 @@ API_KEY = "d7f0800ed81a46509b1d980232a61fdb"
 
 st.title("⚽ Football Match Center & Pronostici Pro")
 st.markdown(
-    "Modello avanzato con **Integrazione Campionato per la Champions League**."
+    "Modello avanzato con **Valutazione Finanziaria delle Rose per la Champions"
+    " League**."
 )
 
 competizioni = {
@@ -184,6 +214,66 @@ scelta_comp_label = st.radio(
     horizontal=True,
 )
 COMPETITION_CODE = competizioni[scelta_comp_label]
+
+# --- TABELLA VALORI DELLE ROSE (IN MILIONI DI EURO) ---
+SQUAD_VALUES = {
+    "paris saint-germain": 1480,
+    "psg": 1480,
+    "manchester city": 1470,
+    "real madrid": 1450,
+    "arsenal": 1410,
+    "barcelona": 1220,
+    "fc barcelona": 1220,
+    "bayern": 1080,
+    "bayern münchen": 1080,
+    "bayern monaco": 1080,
+    "liverpool": 1045,
+    "inter": 738,
+    "internazionale": 738,
+    "atlé tico": 690,
+    "atlé tico de madrid": 690,
+    "atletico madrid": 690,
+    "aston villa": 572,
+    "dortmund": 564,
+    "borussia dortmund": 564,
+    "roma": 498,
+    "as roma": 498,
+    "porto": 464,
+    "fc porto": 464,
+    "napoli": 424,
+    "ssc napoli": 424,
+    "stuttgart": 379,
+    "vfb stuttgart": 379,
+    "psv": 284,
+    "psv eindhoven": 284,
+    "slavia praha": 102,
+    "slavia praga": 102,
+    "bodø/glimt": 79,
+    "bodo/glimt": 79,
+}
+
+
+def get_squad_value_multiplier(team_name):
+  t_clean = team_name.lower().strip()
+  val_mln = 300  # Valore standard di default per squadre non mappate (300 mln)
+  for k, v in SQUAD_VALUES.items():
+    if k in t_clean:
+      val_mln = v
+      break
+
+  if val_mln >= 1200:
+    return 1.45, f"💎 Elite Top Squad ({val_mln} Mld/Mln €)"
+  elif val_mln >= 900:
+    return 1.30, f"⭐ Super Top Squad ({val_mln} Mln €)"
+  elif val_mln >= 600:
+    return 1.18, f"🥇 High Class Squad ({val_mln} Mln €)"
+  elif val_mln >= 350:
+    return 1.05, f"⚖️ Mid-High Squad ({val_mln} Mln €)"
+  elif val_mln >= 150:
+    return 0.90, f"📉 Standard Squad ({val_mln} Mln €)"
+  else:
+    return 0.70, f"🌱 Low Market Squad ({val_mln} Mln €)"
+
 
 st.markdown("---")
 
@@ -241,9 +331,8 @@ def scarica_dati_completi(comp_code):
               "gol_ospite": sc["away"],
           })
 
-    # --- INTEGRAZIONE CAMPIONATO SE SI SELEZIONA LA CHAMPIONS LEAGUE ---
+    # Integrazione storica del campionato nazionale se si sceglie la Champions
     if comp_code == "CL":
-      # Scarichiamo anche lo storico della Serie A (SA) come riferimento principale per colmare la carenza di dati in Champions
       url_league_fin = "https://api.football-data.org/v4/competitions/SA/matches?status=FINISHED"
       res_league_fin = requests.get(url_league_fin, headers=headers, timeout=5)
       if res_league_fin.status_code == 200:
@@ -271,48 +360,7 @@ def scarica_dati_completi(comp_code):
         team_name = row["team"]["name"]
         played = row["playedGames"] if row["playedGames"] > 0 else 1
 
-        neopromosse_keywords = ["monza", "frosinone", "venezia"]
-        bassa_keywords = ["lecce", "cagliari", "empoli", "verona", "spezia"]
-        big_keywords = [
-            "inter",
-            "milan",
-            "juventus",
-            "napoli",
-            "atalanta",
-            "roma",
-            "lazio",
-            "real madrid",
-            "barcelona",
-            "atletico",
-            "manchester city",
-            "arsenal",
-            "liverpool",
-            "chelsea",
-            "bayern",
-            "dortmund",
-            "leverkusen",
-            "psg",
-        ]
-
-        is_neopromossa = any(
-            kw in team_name.lower() for kw in neopromosse_keywords
-        )
-        is_bassa = any(bk in team_name.lower() for bk in bassa_keywords)
-        is_big = any(bg in team_name.lower() for bg in big_keywords)
-
-        if is_big:
-          status_multiplier = 1.15
-          status_label = "⭐ Big Team"
-        elif is_neopromossa:
-          status_multiplier = 0.88
-          status_label = "🌱 Neopromossa"
-        elif is_bassa:
-          status_multiplier = 0.93
-          status_label = "📉 Fascia Bassa"
-        else:
-          status_multiplier = 1.00
-          status_label = "⚖️ Media Classifica"
-
+        mult_val, label_val = get_squad_value_multiplier(team_name)
         coeff_posizione = 1.8 - (idx_pos / max(1, tot_squadre - 1)) * 1.3
 
         standings_dict[team_name] = {
@@ -322,8 +370,8 @@ def scarica_dati_completi(comp_code):
             "gol_fatti_media": row["goalsFor"] / played,
             "gol_subiti_media": row["goalsAgainst"] / played,
             "forza_base": coeff_posizione,
-            "status_multiplier": status_multiplier,
-            "status_label": status_label,
+            "status_multiplier": mult_val,
+            "status_label": label_val,
         }
 
     res_sc = requests.get(url_scorers, headers=headers, timeout=5)
@@ -342,6 +390,9 @@ def scarica_dati_completi(comp_code):
 
 
 def analizza_partita_pro(casa, ospite, history, standings):
+  mult_c, label_c = get_squad_value_multiplier(casa)
+  mult_o, label_o = get_squad_value_multiplier(ospite)
+
   dati_casa = standings.get(
       casa,
       {
@@ -349,8 +400,8 @@ def analizza_partita_pro(casa, ospite, history, standings):
           "posizione": 10,
           "gol_fatti_media": 1.3,
           "gol_subiti_media": 1.1,
-          "status_multiplier": 1.0,
-          "status_label": "Media Classifica",
+          "status_multiplier": mult_c,
+          "status_label": label_c,
       },
   )
   dati_ospite = standings.get(
@@ -360,8 +411,8 @@ def analizza_partita_pro(casa, ospite, history, standings):
           "posizione": 10,
           "gol_fatti_media": 1.3,
           "gol_subiti_media": 1.1,
-          "status_multiplier": 1.0,
-          "status_label": "Media Classifica",
+          "status_multiplier": mult_o,
+          "status_label": label_o,
       },
   )
 
@@ -380,7 +431,6 @@ def analizza_partita_pro(casa, ospite, history, standings):
       m for m in history if m["casa"] == ospite or m["ospite"] == ospite
   ][-5:]
 
-  # --- PONDERAZIONE AVANZATA AVVERSARI (PESO DIFFERENZIATO SE SCARSI O FORTI) ---
   def calcola_rendimento_pesato(partite, squadra_target, standings_dict):
     if not partite:
       return 1.3, 1.1
@@ -390,24 +440,15 @@ def analizza_partita_pro(casa, ospite, history, standings):
     for p in partite:
       is_casa = p["casa"] == squadra_target
       avversario = p["ospite"] if is_casa else p["casa"]
-      dati_avv = standings_dict.get(avversario, {"forza_base": 1.0})
-      forza_avv = dati_avv["forza_base"]
 
+      mult_avv, _ = get_squad_value_multiplier(avversario)
       gf = p["gol_casa"] if is_casa else p["gol_ospite"]
       gs = p["gol_ospite"] if is_casa else p["gol_casa"]
 
-      # Se l'avversario è forte (forza alta), il dato vale di più (più attendibile).
-      # Se l'avversario è scarso (forza bassa), il peso viene ridotto per evitare distorsioni.
-      if forza_avv > 1.2:
-        moltiplicatore_avv = 1.3  # Avversario forte -> dato più affidabile
-      elif forza_avv < 0.8:
-        moltiplicatore_avv = 0.75  # Avversario debole -> vale un po' meno
-      else:
-        moltiplicatore_avv = 1.0
-
-      tot_gf_pesati += gf * moltiplicatore_avv
-      tot_gs_pesati += gs * (2.0 - moltiplicatore_avv)
-      peso_totale += moltiplicatore_avv
+      # Valutazione della qualità dell'avversario
+      tot_gf_pesati += gf * mult_avv
+      tot_gs_pesati += gs * (2.0 - mult_avv)
+      peso_totale += mult_avv
 
     if peso_totale == 0:
       return 1.3, 1.1
@@ -421,27 +462,27 @@ def analizza_partita_pro(casa, ospite, history, standings):
   )
 
   reale_gf_c = (
-      (gf_c * 0.55) + (formaf_c * 0.45)
+      (gf_c * 0.50) + (formaf_c * 0.50)
   ) * dati_casa["status_multiplier"]
-  reale_gs_c = (gs_c * 0.55) + (formas_c * 0.45)
+  reale_gs_c = (gs_c * 0.50) + (formas_c * 0.50)
   reale_gf_o = (
-      (gf_o * 0.55) + (formaf_o * 0.45)
+      (gf_o * 0.50) + (formaf_o * 0.50)
   ) * dati_ospite["status_multiplier"]
-  reale_gs_o = (gs_o * 0.55) + (formas_o * 0.45)
+  reale_gs_o = (gs_o * 0.50) + (formas_o * 0.50)
 
   delta_forza = (forza_c - forza_o) * 0.35
 
   xg_casa = round(
       max(
-          0.7,
-          ((reale_gf_c * 0.55) + (reale_gs_o * 0.45) + 0.25)
+          0.6,
+          ((reale_gf_c * 0.55) + (reale_gs_o * 0.45) + 0.20)
           * (1.0 + delta_forza),
       ),
       2,
   )
   xg_ospite = round(
       max(
-          0.7,
+          0.6,
           ((reale_gf_o * 0.55) + (reale_gs_c * 0.45)) * (1.0 - delta_forza),
       ),
       2,
@@ -458,7 +499,7 @@ def analizza_partita_pro(casa, ospite, history, standings):
   if tot_xg >= 3.0:
     stile_match = "🔥 **Partita Aperta e ad Alto Potenziale Offensivo**"
     desc_stile = (
-        f"Gara aperta tra {dati_casa['status_label']} e"
+        f"Gara ad alta intensità tra {dati_casa['status_label']} e"
         f" {dati_ospite['status_label']}."
     )
   elif tot_xg <= 2.1:
@@ -466,30 +507,31 @@ def analizza_partita_pro(casa, ospite, history, standings):
         "🛡️ **Partita Tattica, Bloccata e a Prevalenza Difensiva**"
     )
     desc_stile = (
-        f"Confronto prudente guidato dai profili di {dati_casa['status_label']}"
+        f"Confronto prudente tra profili di livello {dati_casa['status_label']}"
         f" e {dati_ospite['status_label']}."
     )
   else:
     stile_match = "⚖️ **Partita Equilibrata e di Gran Movimento a Metà Campo**"
     desc_stile = (
-        f"Sfida equilibrata tra {dati_casa['status_label']} e"
+        f"Sfida aperta tra {dati_casa['status_label']} e"
         f" {dati_ospite['status_label']}."
     )
 
   if diff_xg > 0.8:
     dominatore = casa if xg_casa > xg_ospite else ospite
     desc_inerzia = (
-        f"Leggero vantaggio strutturale e di controllo per **{dominatore}**."
+        f"Il maggior valore e peso della rosa da un chiaro vantaggio a"
+        f" **{dominatore}**."
     )
   else:
-    desc_inerzia = "Grande equilibrio strutturale in campo."
+    desc_inerzia = "Equilibrio economico e prestazionale marcato in campo."
 
   motivazione = (
       f"{stile_match}<br><br>{desc_stile}<br><br>{desc_inerzia}<br><br>"
-      f"<span style='color:#6ee7b7;'>Status Squadre:</span> {casa} ="
+      f"<span style='color:#6ee7b7;'>Valore Rose:</span> {casa} ="
       f" <i>{dati_casa['status_label']}</i> | {ospite} ="
       f" <i>{dati_ospite['status_label']}</i><br>"
-      f"<span style='color:#6ee7b7;'>xG Corretti:</span> ({casa}:"
+      f"<span style='color:#6ee7b7;'>xG Ponderati per Categoria:</span> ({casa}:"
       f" <b>{xg_casa}</b> vs {ospite}: <b>{xg_ospite}</b>)"
   )
 
@@ -529,7 +571,7 @@ if not matches_future:
 else:
   if history_matches:
     st.markdown(
-        f'<span class="badge-live">🟢 Modello Champions + Campionato Attivo'
+        f'<span class="badge-live">🟢 Modello Valutazione Rose Attivo'
         f" ({scelta_comp_label})</span>",
         unsafe_allow_html=True,
     )
@@ -601,7 +643,7 @@ else:
 
     st.markdown("<br>", unsafe_allow_html=True)
     avvia_sim = st.button(
-        "🚀 AVVIA SIMULAZIONE A 4 CATEGORIE",
+        "🚀 AVVIA SIMULAZIONE CON VALORE ROSE",
         type="primary",
         use_container_width=True,
     )
@@ -609,13 +651,13 @@ else:
   with col_destra:
     st.markdown(
         '<div class="match-header" style="text-align:center;">📊 Metriche'
-        " Ponderate & Categorie</div>",
+        " Ponderate per Valore Rosa</div>",
         unsafe_allow_html=True,
     )
 
     statistiche_mostrate = [
         (
-            "GOL FATTI (Corretti per Categoria)",
+            "GOL FATTI (Corretti per Rosa)",
             f"{analisi['media_gf_c']:.2f}",
             f"{analisi['media_gf_o']:.2f}",
         ),
@@ -650,7 +692,7 @@ else:
       )
 
   st.markdown(
-      '<div class="match-header">📋 Analisi Tattica & Categorie</div>',
+      '<div class="match-header">📋 Analisi Tattica & Blasone Economico</div>',
       unsafe_allow_html=True,
   )
   st.markdown(
@@ -666,7 +708,9 @@ else:
 
   if avvia_sim:
     N_SIM = 1_000_000
-    with st.spinner("Elaborazione Monte Carlo a 4 categorie in corso..."):
+    with st.spinner(
+        "Elaborazione Monte Carlo basata su valore rosa e xG in corso..."
+    ):
       gol_c = np.random.poisson(analisi["xg_f"], N_SIM)
       gol_t = np.random.poisson(analisi["xg_s"], N_SIM)
 
