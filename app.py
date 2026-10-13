@@ -195,8 +195,8 @@ API_KEY = "d7f0800ed81a46509b1d980232a61fdb"
 
 st.title("⚽ Football Match Center & Pronostici Pro")
 st.markdown(
-    "Modello avanzato con **Valutazione Finanziaria delle Rose per la Champions"
-    " League**."
+    "Modello avanzato con **Classifica Completa dei Valori delle Rose (36"
+    " Club)**."
 )
 
 competizioni = {
@@ -215,54 +215,87 @@ scelta_comp_label = st.radio(
 )
 COMPETITION_CODE = competizioni[scelta_comp_label]
 
-# --- TABELLA VALORI DELLE ROSE (IN MILIONI DI EURO) ---
+# --- CLASSIFICA COMPLETA VALORI DELLE ROSE (IN MILIONI DI EURO) ---
 SQUAD_VALUES = {
-    "paris saint-germain": 1480,
-    "psg": 1480,
-    "manchester city": 1470,
-    "real madrid": 1450,
-    "arsenal": 1410,
-    "barcelona": 1220,
-    "fc barcelona": 1220,
-    "bayern": 1080,
-    "bayern münchen": 1080,
-    "bayern monaco": 1080,
-    "liverpool": 1045,
-    "inter": 738,
-    "internazionale": 738,
-    "atlé tico": 690,
-    "atlé tico de madrid": 690,
-    "atletico madrid": 690,
-    "aston villa": 572,
-    "dortmund": 564,
-    "borussia dortmund": 564,
-    "roma": 498,
-    "as roma": 498,
-    "porto": 464,
-    "fc porto": 464,
-    "napoli": 424,
-    "ssc napoli": 424,
-    "stuttgart": 379,
-    "vfb stuttgart": 379,
-    "psv": 284,
-    "psv eindhoven": 284,
-    "slavia praha": 102,
-    "slavia praga": 102,
-    "bodø/glimt": 79,
-    "bodo/glimt": 79,
+    "real madrid": 1460,
+    "manchester city": 1430,
+    "paris saint-germain": 1360,
+    "psg": 1360,
+    "arsenal": 1330,
+    "fc arsenal": 1330,
+    "barcelona": 1260,
+    "fc barcellona": 1260,
+    "barcellona": 1260,
+    "bayern": 1040,
+    "bayern monaco": 1040,
+    "fc bayern monaco": 1040,
+    "liverpool": 1030,
+    "fc liverpool": 1030,
+    "manchester united": 924,
+    "inter": 730,
+    "internazionale": 730,
+    "atletico madrid": 680,
+    "atlé tico de madrid": 680,
+    "atletico de madrid": 680,
+    "rb leipzig": 610,
+    "rasenballsport leipzig": 610,
+    "leipzig": 610,
+    "roma": 580,
+    "as roma": 580,
+    "aston villa": 545,
+    "dortmund": 510,
+    "borussia dortmund": 510,
+    "napoli": 496,
+    "ssc napoli": 496,
+    "como": 460,
+    "como 1907": 460,
+    "sporting": 457,
+    "sporting cp": 457,
+    "galatasaray": 412,
+    "porto": 390,
+    "fc porto": 390,
+    "bayer leverkusen": 380,
+    "leverkusen": 380,
+    "stoccarda": 340,
+    "vfb stuttgart": 340,
+    "psv": 320,
+    "psv eindhoven": 320,
+    "lille": 290,
+    "losc lille": 290,
+    "lens": 270,
+    "racing club de lens": 270,
+    "feyenoord": 260,
+    "real betis": 240,
+    "villarreal": 215,
+    "fenerbahçe": 200,
+    "fenerbahce": 200,
+    "club brugge": 165,
+    "slavia praga": 125,
+    "slavia praha": 125,
+    "shakhtar donetsk": 110,
+    "shakhtar": 110,
+    "aek atene": 85,
+    "aek": 85,
+    "bodø/glimt": 65,
+    "bodo/glimt": 65,
+    "viking stavanger": 48,
+    "viking": 48,
+    "slovan bratislava": 32,
+    "sabah fk": 19,
+    "sabah": 19,
 }
 
 
 def get_squad_value_multiplier(team_name):
   t_clean = team_name.lower().strip()
-  val_mln = 300  # Valore standard di default per squadre non mappate (300 mln)
+  val_mln = 250  # Default per squadre non mappate
   for k, v in SQUAD_VALUES.items():
     if k in t_clean:
       val_mln = v
       break
 
   if val_mln >= 1200:
-    return 1.45, f"💎 Elite Top Squad ({val_mln} Mld/Mln €)"
+    return 1.45, f"💎 Elite Top Squad ({val_mln} Mln €)"
   elif val_mln >= 900:
     return 1.30, f"⭐ Super Top Squad ({val_mln} Mln €)"
   elif val_mln >= 600:
@@ -445,7 +478,6 @@ def analizza_partita_pro(casa, ospite, history, standings):
       gf = p["gol_casa"] if is_casa else p["gol_ospite"]
       gs = p["gol_ospite"] if is_casa else p["gol_casa"]
 
-      # Valutazione della qualità dell'avversario
       tot_gf_pesati += gf * mult_avv
       tot_gs_pesati += gs * (2.0 - mult_avv)
       peso_totale += mult_avv
@@ -571,7 +603,7 @@ if not matches_future:
 else:
   if history_matches:
     st.markdown(
-        f'<span class="badge-live">🟢 Modello Valutazione Rose Attivo'
+        f'<span class="badge-live">🟢 Modello Valutazione Rose Completo"</span>'
         f" ({scelta_comp_label})</span>",
         unsafe_allow_html=True,
     )
@@ -643,7 +675,7 @@ else:
 
     st.markdown("<br>", unsafe_allow_html=True)
     avvia_sim = st.button(
-        "🚀 AVVIA SIMULAZIONE CON VALORE ROSE",
+        "🚀 AVVIA SIMULAZIONE CON CLASSIFICA ROSE",
         type="primary",
         use_container_width=True,
     )
